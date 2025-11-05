@@ -2,9 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import ingestRoute from './routes/ingest.route';
-//import transcriptsRoute from './routes/transcripts.route';
+import transcriptsRoute from './routes/transcripts.route';
 import searchRoute from './routes/search.route';
-//import analyticsRoute from './routes/analytics.route';
+import analyticsRoute from './routes/analytics.route';
 import { initializeChroma } from './services/chroma.service';
 
 dotenv.config();
@@ -23,9 +23,9 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api', ingestRoute);
-//app.use('/api', transcriptsRoute);
+app.use('/api', transcriptsRoute);
 app.use('/api', searchRoute);
-//app.use('/api', analyticsRoute);
+app.use('/api', analyticsRoute);
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
