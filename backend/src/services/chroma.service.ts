@@ -52,3 +52,31 @@ export async function addEmbedding(
 }
 
 
+
+export async function searchSimilarTranscripts(
+  queryEmbedding: number[],
+  limit: number = 5
+) {
+  try {
+    const collection = await client.getOrCreateCollection({
+      name: COLLECTION_NAME,
+    });
+
+    const results = await collection.query({
+      queryEmbeddings: [queryEmbedding],
+      nResults: limit,
+    });
+
+    return {
+      ids: results.ids[0] || [],
+      distances: results.distances?.[0] || [],
+      documents: results.documents[0] || [],
+      metadatas: results.metadatas[0] || [],
+    };
+  } catch (error) {
+    console.error('Error searching Chroma:', error);
+    throw error;
+  }
+}
+
+

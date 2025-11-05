@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import ingestRoute from './routes/ingest.route';
 //import transcriptsRoute from './routes/transcripts.route';
-//import searchRoute from './routes/search.route';
+import searchRoute from './routes/search.route';
 //import analyticsRoute from './routes/analytics.route';
 import { initializeChroma } from './services/chroma.service';
 
@@ -24,7 +24,7 @@ app.get('/health', (req, res) => {
 // Routes
 app.use('/api', ingestRoute);
 //app.use('/api', transcriptsRoute);
-//app.use('/api', searchRoute);
+app.use('/api', searchRoute);
 //app.use('/api', analyticsRoute);
 
 // Error handling middleware
