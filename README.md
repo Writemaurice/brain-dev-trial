@@ -1,380 +1,259 @@
-# Brain Developer Technical Trial
+# Knowledge Extraction API - Brain Developer Trial
 
-**Duration**: 4-6 hours (You will be paid for 5 hours)
-**Level**: Senior Software Engineer (AI + Fullstack)  
-**Language**: English
+A full-stack application that processes meeting transcripts using AI to extract entities, generate summaries and insights, perform semantic search, and provide analytics.
 
----
+## Features
 
-## 🎯 Context
+### ✅ Backend API (Express + TypeScript)
+- **POST /api/ingest** - Ingests transcripts with AI-powered extraction
+- **GET /api/transcripts** - Lists all transcripts
+- **GET /api/transcripts/:id** - Gets specific transcript details
+- **GET /api/search?q=query** - Semantic search using embeddings
+- **GET /api/analytics/topics** - Topic statistics
+- **GET /api/analytics/participants** - Participant engagement metrics
 
-You've been tasked to build a **Knowledge Extraction API** that processes meeting transcripts, extracts entities (people, organizations, topics), and provides intelligent querying capabilities. This simulates the core challenges you'll face working on Brain (our main product).
+### ✅ AI Features
+1. **Entity Extraction** - Extracts topics, action items, decisions, and sentiment
+2. **Automatic Summarization** - Generates 2-3 sentence summaries
+3. **Key Insights Generation** - Extracts 3-5 strategic insights
+4. **Semantic Search** - OpenAI embeddings + ChromaDB for meaning-based search
 
-The system should:
-1. Ingest meeting transcripts via API
-2. Extract structured data (participants, topics, key decisions)
-3. Store in a graph-like structure
-4. Provide semantic search capabilities
-5. Generate insights via LLM
+### ✅ Frontend Dashboard (React + Vite + Tailwind)
+- **Transcript List** - Browse and filter transcripts
+- **Transcript Detail** - View full details with summary and insights
+- **Semantic Search** - Natural language search interface
+- **Analytics Dashboard** - Charts and statistics with Recharts
 
----
+## Technology Stack
 
-## 📋 Requirements
+**Backend:**
+- Express.js + TypeScript
+- PostgreSQL (structured data)
+- ChromaDB (vector embeddings)
+- OpenAI API (GPT-3.5-turbo + text-embedding-3-small)
+- Zod (validation)
 
-### Part 1: Backend API (Required)
+**Frontend:**
+- React 18 + TypeScript
+- Vite (build tool)
+- Tailwind CSS
+- React Router v6
+- Recharts (visualizations)
+- Axios (HTTP client)
 
-Build a REST API using **NestJS** or **Express + TypeScript** with the following endpoints:
+## Architecture
 
-#### 1.1 Ingestion Endpoint
 ```
-POST /api/ingest
+┌─────────────────┐
+│  React Frontend │ 
+│   (Port 3000)   │
+└────────┬────────┘
+         │ HTTP/REST
+         ▼
+┌────────────────────────────────────┐
+│     Express Backend API            │
+│        (Port 3001)                 │
+│                                    │
+│  • Entity Extraction (GPT-3.5)    │
+│  • Summarization (GPT-3.5)        │
+│  • Insights Generation (GPT-3.5)  │
+│  • Embeddings (text-embedding)    │
+└─────────┬──────────────┬───────────┘
+          │              │
+    ┌─────▼─────┐  ┌─────▼─────┐
+    │PostgreSQL │  │ ChromaDB  │
+    │(Relations)│  │(Vectors)  │
+    └───────────┘  └───────────┘
 ```
 
-**Request Body**:
+## Database Schema
+
+- **transcripts** - Meeting records with summary and insights
+- **participants** - People (deduplicated by email)
+- **topics** - Extracted themes
+- **action_items** - Tasks identified
+- **decisions** - Key outcomes
+- **transcript_participants** - Many-to-many junction
+- **transcript_topics** - Many-to-many junction
+
+## Project Structure
+
+```
+brain-dev-trial/
+├── README.md                    # This file
+├── SETUP.md                     # Setup instructions
+├── backend/
+│   ├── src/
+│   │   ├── index.ts            # Main server
+│   │   ├── migrate.ts          # Migration runner
+│   │   ├── database/
+│   │   │   ├── schema.sql      # Database schema
+│   │   │   └── db.ts           # Connection pool
+│   │   ├── routes/             # API endpoints
+│   │   ├── services/           # OpenAI & ChromaDB
+│   │   └── types/              # Zod schemas
+│   ├── package.json
+│   └── tsconfig.json
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── pages/              # React pages
+│   │   └── api/                # API client
+│   ├── package.json
+│   └── vite.config.ts
+└── sample-data/
+    └── sample-transcripts.json # Test data
+```
+
+## Quick Start
+
+See **SETUP.md** for detailed installation and setup instructions.
+
+```bash
+# 1. Start databases
+docker run -d --name brain-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=brain_trial -p 5432:5432 postgres:16-alpine
+docker run -d --name brain-chroma -p 8000:8000 chromadb/chroma:latest
+
+# 2. Setup backend
+cd backend
+npm install
+cp env.example .env
+# Edit .env and add your OPENAI_API_KEY
+npm run migrate
+npm run dev
+
+# 3. Setup frontend (in new terminal)
+cd frontend
+npm install
+npm run dev
+
+# 4. Open http://localhost:3000
+```
+
+## API Example
+
+### Ingest a transcript:
+
+```bash
+curl -X POST http://localhost:3001/api/ingest \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transcript_id": "meeting-001",
+    "title": "Q4 Planning",
+    "occurred_at": "2025-10-20T10:00:00Z",
+    "duration_minutes": 30,
+    "participants": [
+      {"name": "John Doe", "email": "john@example.com", "role": "speaker"}
+    ],
+    "transcript": "John: Hello everyone. Today we will discuss our Q4 goals and budget allocation..."
+  }'
+```
+
+### Response:
+
 ```json
 {
-  "transcript_id": "unique-id",
-  "title": "Q4 Planning Meeting",
-  "occurred_at": "2025-10-15T14:00:00Z",
-  "duration_minutes": 45,
-  "participants": [
-    {
-      "name": "John Doe",
-      "email": "john@acme.com",
-      "role": "speaker"
-    }
-  ],
-  "transcript": "Full meeting transcript text here...",
-  "metadata": {
-    "platform": "zoom",
-    "recording_url": "https://..."
-  }
-}
-```
-
-**Requirements**:
-- Validate input data (use class-validator or Zod)
-- Extract entities from transcript:
-  - **Topics**: Use OpenAI to identify main themes discussed
-  - **Action Items**: Extract tasks mentioned
-  - **Decisions**: Identify key decisions made
-  - **Sentiment**: Analyze overall meeting sentiment
-- Store in a **relational database** (PostgreSQL or SQLite)
-- Return processed data with extracted entities
-
-**Response**:
-```json
-{
-  "id": "...",
+  "id": "meeting-001",
   "status": "processed",
   "extracted": {
-    "topics": ["Budget Planning", "Q4 Goals", "Marketing Strategy"],
-    "action_items": ["Review Q3 report", "Schedule follow-up"],
-    "decisions": ["Approved budget increase of 15%"],
-    "sentiment": "positive"
+    "topics": ["Budget Planning", "Q4 Goals"],
+    "action_items": ["Review Q3 report"],
+    "decisions": ["Approved budget increase"],
+    "sentiment": "positive",
+    "summary": "The team discussed Q4 goals and budget allocation. Key decisions were made regarding budget increases and action items were assigned.",
+    "key_insights": [
+      "Team alignment on Q4 priorities shows strong organizational focus",
+      "Budget increase indicates growth trajectory"
+    ]
   }
 }
 ```
 
-#### 1.2 Query Endpoints
+## Requirements Met
 
-```
-GET /api/transcripts
-GET /api/transcripts/:id
-GET /api/search?q=query
-GET /api/analytics/topics
-GET /api/analytics/participants
-```
+✅ **Part 1: Backend API** - All endpoints implemented  
+✅ **Part 2: Data Modeling** - PostgreSQL schema with proper relationships  
+✅ **Part 3: Frontend Dashboard** - 4 pages with modern UI  
+✅ **Part 4: AI Integration** - 4 AI features (entity extraction, summarization, insights, semantic search)
 
-**Requirements**:
-- `/api/search`: Implement **semantic search** using OpenAI embeddings
-  - Store embeddings when ingesting transcripts
-  - Compare query embedding with stored embeddings (cosine similarity)
-  - Return top 5 most relevant transcripts
-- `/api/analytics/topics`: Return aggregated topic statistics
-- `/api/analytics/participants`: Return participant engagement metrics
+## Design Decisions
 
-#### 1.3 Graph Insights (Bonus - Extra Points)
+**Express vs NestJS:** Chose Express for simpler setup and faster MVP development
 
-```
-GET /api/graph/connections
-```
+**PostgreSQL:** Relational data with ACID compliance, JSONB for flexibility
 
-Return relationships between entities:
-```json
-{
-  "connections": [
-    {
-      "person": "John Doe",
-      "organization": "ACME Corp",
-      "topics": ["Budget", "Marketing"],
-      "interaction_count": 5
-    }
-  ]
-}
-```
+**ChromaDB:** Open-source vector database optimized for embeddings. I chose this because of simple local setup and easy implementation due to time constraints.
 
-### Part 2: Data Modeling (Required)
+**Zod:** Type-safe validation with TypeScript integration
 
-Design a database schema that supports:
-1. **Transcripts** table
-2. **Participants** table (with deduplication by email)
-3. **Topics** table
-4. **Action Items** table
-5. **Embeddings** table (for semantic search)
+## What Happens During Ingestion
 
-**Requirements**:
-- Use proper relationships (1-to-many, many-to-many)
-- Create indexes for common queries
-- Include a migration file
-- Consider how to handle entity resolution (same person with different name variations)
+1. Validates request data (Zod)
+2. Extracts entities with GPT-3.5 (topics, actions, decisions, sentiment)
+3. Generates 2-3 sentence summary
+4. Generates 3-5 key insights
+5. Stores in PostgreSQL with relationships
+6. Creates vector embedding (1536 dimensions)
+7. Stores embedding in ChromaDB
+8. Returns all extracted data
 
-### Part 3: Frontend Dashboard (Required)
+Processing time: 10-20 seconds per transcript
 
-Build a **Next.js** or **React** dashboard with:
+## Environment Variables
 
-#### 3.1 Pages
-1. **Transcript List**: Display all transcripts with filters (date, participants, topics)
-2. **Transcript Detail**: Show full transcript with highlighted entities
-3. **Analytics Dashboard**: 
-   - Top topics (bar chart)
-   - Participant activity (table)
-   - Sentiment trend over time (line chart)
-4. **Search Page**: Semantic search interface
+Create `backend/.env`:
 
-#### 3.2 UI Requirements
-- Modern, clean design (use Tailwind CSS or shadcn/ui)
-- Responsive (mobile-friendly)
-- Loading states and error handling
-- Dark mode support (bonus)
-
-### Part 4: AI Integration (Required)
-
-Implement **at least 2** of the following AI features:
-
-1. **Automatic Summarization**: Generate 2-3 sentence summary of each transcript
-2. **Entity Extraction**: Extract people, companies, topics using GPT-4/GPT-3.5
-3. **Semantic Search**: Use OpenAI embeddings for similarity search
-4. **Insight Generation**: Generate "Key Insights" from a transcript
-5. **Smart Tagging**: Auto-suggest relevant tags for transcripts
-
-**Requirements**:
-- Use OpenAI API (you'll need an API key)
-- Handle rate limiting gracefully
-- Cache results to avoid redundant API calls
-- Include prompt engineering examples
-
----
-
-## 🔧 Technical Constraints
-
-### Required Technologies
-- **Backend**: NestJS or Express with TypeScript
-- **Frontend**: Next.js 14+ with TypeScript
-- **Database**: PostgreSQL or SQLite
-- **AI**: OpenAI API (GPT-4 or GPT-3.5-turbo for extraction, text-embedding-3-small for embeddings)
-
-### Nice to Have
-- Docker setup with docker-compose
-- Graph database (Neo4j or any graph DB) for entity relationships
-- Swagger/OpenAPI documentation
-- Unit tests for critical paths
-- Environment variable validation
-
----
-
-## 📦 Deliverables
-
-### 1. Code Repository
-- Clean, well-structured code
-- README.md with setup instructions
-- .env.example with required variables
-- Database migration files
-
-### 2. Documentation
-Include in your README:
-- **Architecture overview** (diagram appreciated)
-- **API documentation** (or link to Swagger)
-- **Setup instructions** (step-by-step)
-- **Design decisions**: Why did you choose X over Y?
-- **Trade-offs**: What would you improve with more time?
-
-### 3. Demo
-Either:
-- Deployed version (Vercel/Railway/Render)
-- Video walkthrough (Loom/YouTube)
-- Docker setup that runs with `docker-compose up`
-
----
-
-## 🎯 Evaluation Criteria
-
-### Code Quality (30%)
-- TypeScript usage (proper typing, no `any` abuse)
-- Clean architecture (separation of concerns)
-- Error handling and validation
-- Code organization and modularity
-
-### AI Integration (25%)
-- Effective prompt engineering
-- Proper use of embeddings for semantic search
-- Error handling for LLM calls
-- Cost-awareness (caching, token optimization)
-
-### Data Modeling (20%)
-- Schema design quality
-- Relationship modeling
-- Query optimization
-- Handling data consistency
-
-### Frontend (15%)
-- User experience
-- Code organization
-- State management
-- Responsive design
-
-### Documentation (10%)
-- Clear setup instructions
-- Architecture explanation
-- API documentation
-- Code comments where needed
-
----
-
-## 🚀 Getting Started
-
-1. Fork this repository or create a new one
-2. Set up your development environment
-3. Create `.env` file with your OpenAI API key:
-   ```
-   OPENAI_API_KEY=sk-proj-...
-   DATABASE_URL=postgresql://...
-   ```
-4. Build the features incrementally
-5. Test thoroughly
-6. Document everything
-
----
-
-## 💡 Sample Transcript for Testing
-
-```json
-{
-  "transcript_id": "meeting-001",
-  "title": "Q4 Marketing Strategy Meeting",
-  "occurred_at": "2025-10-15T14:00:00Z",
-  "duration_minutes": 45,
-  "participants": [
-    {
-      "name": "Sarah Chen",
-      "email": "sarah@acme.com",
-      "role": "speaker"
-    },
-    {
-      "name": "Michael Rodriguez",
-      "email": "mike@acme.com",
-      "role": "speaker"
-    },
-    {
-      "name": "Jennifer Lee",
-      "email": "jen@acme.com",
-      "role": "participant"
-    }
-  ],
-  "transcript": "Sarah: Thanks everyone for joining. Let's dive into our Q4 marketing strategy. We need to discuss our budget allocation and campaign priorities.\n\nMichael: Absolutely. I've been reviewing our Q3 numbers, and I think we should increase our content marketing budget by 25%. Our blog posts have been generating significant leads.\n\nJennifer: I agree with Mike. The data shows clear ROI. I'd also suggest we explore influencer partnerships for our enterprise segment.\n\nSarah: Great points. Let's make it official - we'll increase content budget by 25% and allocate $50k for influencer partnerships. Mike, can you prepare a detailed breakdown by Friday?\n\nMichael: Absolutely, I'll have it ready.\n\nSarah: Perfect. One more thing - we need to decide on our target accounts for ABM campaigns. Jennifer, your thoughts?\n\nJennifer: I've identified 15 high-value accounts in the healthcare and fintech sectors. I'll share the list in Slack after this call.\n\nSarah: Excellent. Let's reconvene next Tuesday to finalize the campaign roadmap. Thanks everyone!",
-  "metadata": {
-    "platform": "zoom",
-    "recording_url": "https://zoom.us/rec/play/example"
-  }
-}
+```env
+OPENAI_API_KEY=sk-proj-your-key-here
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/brain_trial
+PORT=3001
+CHROMA_HOST=localhost
+CHROMA_PORT=8000
 ```
 
-**Expected Extraction**:
-- **Topics**: Budget Planning, Content Marketing, Influencer Partnerships, ABM Strategy, Q4 Planning
-- **Action Items**: 
-  - "Mike to prepare budget breakdown by Friday"
-  - "Jennifer to share target account list in Slack"
-  - "Reconvene next Tuesday for campaign roadmap"
-- **Decisions**:
-  - "Increase content marketing budget by 25%"
-  - "Allocate $50k for influencer partnerships"
-  - "Target healthcare and fintech sectors for ABM"
-- **Sentiment**: Positive (collaborative, productive)
-- **Key Participants**: Sarah Chen (meeting leader), Michael Rodriguez, Jennifer Lee
+## Development
+
+- **Backend**: `cd backend && npm run dev` (port 3001)
+- **Frontend**: `cd frontend && npm run dev` (port 3000)
+- **Migration**: `cd backend && npm run migrate`
+
+## Testing
+
+### Test API:
+```bash
+curl http://localhost:3001/health
+curl http://localhost:3001/api/transcripts
+curl "http://localhost:3001/api/search?q=budget"
+```
+
+### Load sample data:
+Use the 4 sample transcripts in `sample-data/sample-transcripts.json`
+
+## Trade-offs & Future Improvements
+
+**Current Limitations:**
+- No caching (every OpenAI call is fresh)
+- No authentication
+- No pagination
+- Sequential processing only
+
+**With More Time:**
+- Add Redis caching
+- Implement JWT authentication
+- Add job queue (Bull/BullMQ)
+- Write unit & integration tests
+- Add rate limiting
+- Implement real-time updates (WebSockets)
+- Dark mode support
+- Replace Chroma with Weaviate or Qdrant for scalability
+
+## Documentation
+
+- **README.md** - Project overview (this file)
+- **SETUP.md** - Detailed setup instructions
+- API responses are self-documenting with TypeScript interfaces
 
 ---
 
-## 🏆 Bonus Challenges (Optional)
-
-These are not required but will demonstrate exceptional skills:
-
-### 1. Real-time Processing
-- WebSocket endpoint for streaming LLM responses
-- Progress updates during transcript processing
-
-### 2. Multi-hop Querying
-- "Show me all meetings where person X discussed topic Y"
-- "Which topics were discussed by ACME Corp in October?"
-
-### 3. Smart Deduplication
-- Handle same person with name variations ("Mike", "Michael Rodriguez", "M. Rodriguez")
-- Fuzzy matching for companies ("ACME", "ACME Corp", "ACME Corporation")
-
-### 4. Advanced Analytics
-- Topic co-occurrence matrix (which topics are discussed together?)
-- Participant influence score (based on speaking patterns)
-- Meeting effectiveness score
-
-### 5. Graph Visualization
-- Interactive network graph showing connections between people, topics, and meetings
-- Use D3.js, vis.js, or similar
-
----
-
-## ❓ Frequently Asked Questions
-
-**Q: Can I use JavaScript instead of TypeScript?**  
-A: We strongly prefer TypeScript. Our product is fully TypeScript, and type safety is critical.
-
-**Q: Which LLM should I use?**  
-A: OpenAI GPT-4/3.5 is recommended. If you use alternatives (Anthropic, local models), explain why.
-
-**Q: Do I need to implement all bonus features?**  
-A: No. Focus on core requirements first. Bonuses are for going above and beyond.
-
-**Q: Can I use ORMs like Prisma/TypeORM?**  
-A: Yes! We use Mongoose for MongoDB in Brain, so ORM experience is valuable.
-
-**Q: How should I handle the OpenAI API key?**  
-A: Environment variable. Include `.env.example` but never commit actual keys.
-
----
-
-## 📬 Submission
-
-When ready, send us:
-1. Link to your GitHub repository (public or invite us as collaborator) to the recruiting team that contacted you
-2. Brief video/Loom walkthrough (5-10 minutes)
-3. Any notes about your approach or challenges faced
-4. Your payment information to receive your hours
-
-**Time Expectation**: 4-6 hours for core requirements. Take your time to do it well rather than rushing.
-
----
-
-## 🧠 Why This Test?
-
-This test simulates the core challenges you'll face in Brain:
-- **Multi-database thinking**: Relational + embeddings (like our MongoDB + Weaviate + Memgraph)
-- **Entity extraction & resolution**: Same challenges we face with people/org disambiguation
-- **Semantic search**: Core feature of Brain's chat interface
-- **LLM integration**: Prompt engineering, error handling, streaming
-- **Data modeling**: How you think about relationships and schemas
-- **Fullstack skills**: API design + modern frontend
-
-Good luck! We're excited to see your solution. 🚀
-
----
-
-**Brain Team @ 8 Figure Agency**
-
+**Total Implementation Time:** ~5 hours  
+**AI Models Used:** GPT-3.5-turbo, text-embedding-3-small
